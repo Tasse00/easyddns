@@ -60,17 +60,37 @@ func refreshIpV6(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain, rr st
 	}
 	return nil
 }
+
+func getEnvOrDefault(key string, dft string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	} else {
+		return dft
+	}
+}
+
 func main() {
 
-	ipDetectorType := os.Getenv("IP_DETECTOR")
-	dnsManagerType := os.Getenv("DNS_MANAGER")
-	domain := os.Getenv("DOMAIN")
-	rr := os.Getenv("RR")
-	enableV4 := os.Getenv("ENABLE_V4") == "true"
-	enableV6 := os.Getenv("ENABLE_V6") == "true"
-	refreshInterval := os.Getenv("REFRESH_INTERVAL")
+	ipDetectorTypeV4 := getEnvOrDefault("IP_DETECTOR_V4", "netarm")
+	ipDetectorTypeV6 := getEnvOrDefault("IP_DETECTOR_V6", "netarm")
 
-	println("Ip Detector:", ipDetectorType)
+	ipDetectorType := getEnvOrDefault("IP_DETECTOR", "")
+
+	if ipDetectorType != "" {
+		ipDetectorTypeV4 = ipDetectorType
+		ipDetectorTypeV6 = ipDetectorType
+	}
+
+	dnsManagerType := getEnvOrDefault("DNS_MANAGER", "mock")
+
+	domain := getEnvOrDefault("DOMAIN", "example.com")
+	rr := getEnvOrDefault("RR", "sub")
+	enableV4 := getEnvOrDefault("ENABLE_V4", "true") == "true"
+	enableV6 := getEnvOrDefault("ENABLE_V6", "true") == "true"
+	refreshInterval := getEnvOrDefault("REFRESH_INTERVAL", "6h")
+
+	println("Ip Detector V4:", ipDetectorTypeV4)
+	println("Ip Detector V6:", ipDetectorTypeV6)
 	println("Dns Manager:", dnsManagerType)
 	println("Domain:", domain)
 	println("RR:", rr)
@@ -78,7 +98,11 @@ func main() {
 	println("Enable V6:", enableV6)
 	println("Refresh Interval:", refreshInterval)
 
-	ipDetector, err := ip.GetIpDetector(ipDetectorType)
+	ipDetectorV4, err := ip.GetIpDetector(ipDetectorTypeV4)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	ipDetectorV6, err := ip.GetIpDetector(ipDetectorTypeV6)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -95,14 +119,14 @@ func main() {
 
 	for {
 		if enableV4 {
-			err = refreshIpV4(ipDetector, dnsManager, domain, rr)
+			err = refreshIpV4(ipDetectorV4, dnsManager, domain, rr)
 			if err != nil {
 				log.Println(err)
 			}
 		}
 
 		if enableV6 {
-			err = refreshIpV6(ipDetector, dnsManager, domain, rr)
+			err = refreshIpV6(ipDetectorV6, dnsManager, domain, rr)
 			if err != nil {
 				log.Println(err)
 			}
