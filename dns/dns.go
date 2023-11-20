@@ -13,6 +13,8 @@ func GetDnsManager(t string) (ManageDNS, error) {
 	switch t {
 	case "aliyun":
 		return NewAliyunDns()
+	case "mock":
+		return NewDnsManageMock(), nil
 	default:
 		return nil, errors.New("not support ip detector: " + t)
 	}
