@@ -9,7 +9,7 @@ import (
 	"tasse00.com/easyddns/ip"
 )
 
-func refreshIpV4(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain string) error {
+func refreshIpV4(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain, rr string) error {
 
 	ipV4, err := ipdetector.DetectIpV4()
 	if err != nil {
@@ -17,7 +17,7 @@ func refreshIpV4(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain string
 	}
 	log.Println("current ipv4: ", ipV4)
 
-	rcdVal, err := dnsmanager.GetIpV4(domain)
+	rcdVal, err := dnsmanager.GetIpV4(domain, rr)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func refreshIpV4(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain string
 
 	if rcdVal != ipV4 {
 		log.Println(domain, "will update ipv4 ...")
-		err = dnsmanager.UpdateIpV4(domain, ipV4)
+		err = dnsmanager.UpdateIpV4(domain, rr, ipV4)
 		if err != nil {
 			return err
 		}
@@ -36,21 +36,21 @@ func refreshIpV4(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain string
 	return nil
 }
 
-func refreshIpV6(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain string) error {
+func refreshIpV6(ipdetector ip.DetectIp, dnsmanager dns.ManageDNS, domain, rr string) error {
 	ipV6, err := ipdetector.DetectIpV6()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	log.Println("current ipv6: ", ipV6)
 
-	rcdVal, err := dnsmanager.GetIpV6(domain)
+	rcdVal, err := dnsmanager.GetIpV6(domain, rr)
 	if err != nil {
 		return err
 	}
 	log.Println(domain, "record value", rcdVal)
 	if rcdVal != ipV6 {
 		log.Println(domain, "will update ipv6 ...")
-		err = dnsmanager.UpdateIpV6(domain, ipV6)
+		err = dnsmanager.UpdateIpV6(domain, rr, ipV6)
 		if err != nil {
 			return err
 		}
@@ -65,6 +65,7 @@ func main() {
 	ipDetectorType := os.Getenv("IP_DETECTOR")
 	dnsManagerType := os.Getenv("DNS_MANAGER")
 	domain := os.Getenv("DOMAIN")
+	rr := os.Getenv("RR")
 	enableV4 := os.Getenv("ENABLE_V4") == "true"
 	enableV6 := os.Getenv("ENABLE_V6") == "true"
 	refreshInterval := os.Getenv("REFRESH_INTERVAL")
@@ -72,6 +73,7 @@ func main() {
 	println("Ip Detector:", ipDetectorType)
 	println("Dns Manager:", dnsManagerType)
 	println("Domain:", domain)
+	println("RR:", rr)
 	println("Enable V4:", enableV4)
 	println("Enable V6:", enableV6)
 	println("Refresh Interval:", refreshInterval)
@@ -93,14 +95,14 @@ func main() {
 
 	for {
 		if enableV4 {
-			err = refreshIpV4(ipDetector, dnsManager, domain)
+			err = refreshIpV4(ipDetector, dnsManager, domain, rr)
 			if err != nil {
 				log.Println(err)
 			}
 		}
 
 		if enableV6 {
-			err = refreshIpV6(ipDetector, dnsManager, domain)
+			err = refreshIpV6(ipDetector, dnsManager, domain, rr)
 			if err != nil {
 				log.Println(err)
 			}

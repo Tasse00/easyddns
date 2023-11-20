@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"os"
-	"strings"
 
 	dns "github.com/alibabacloud-go/alidns-20150109/v2/client"
 	openapi "github.com/alibabacloud-go/darabonba-openapi/client"
@@ -108,17 +107,13 @@ func NewAliyunDns() (*AliyunDns, error) {
 	}, nil
 }
 
-func (d *AliyunDns) UpdateIpV4(domain string, ipv4 string) error {
+func (d *AliyunDns) UpdateIpV4(domain, rr, ipv4 string) error {
 
-	_domain, rr, err := splitDomainAndRR(domain)
-	if err != nil {
-		return err
-	}
 	rcdtype := "A"
-	recordidmapkey := _domain + rr + rcdtype
+	recordidmapkey := domain + rr + rcdtype
 	_, ok := d.rrMap[recordidmapkey]
 	if !ok {
-		_, err := d.GetIpV4(domain)
+		_, err := d.GetIpV4(domain, rr)
 		if err != nil {
 			return err
 		}
@@ -127,23 +122,20 @@ func (d *AliyunDns) UpdateIpV4(domain string, ipv4 string) error {
 	if !ok {
 		return errors.New("get recordid failed")
 	}
-	if err = updateDomainRecord(d.client, recordid, rr, rcdtype, ipv4); err != nil {
+	if err := updateDomainRecord(d.client, recordid, rr, rcdtype, ipv4); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *AliyunDns) UpdateIpV6(domain string, ipv6 string) error {
-	_domain, rr, err := splitDomainAndRR(domain)
-	if err != nil {
-		return err
-	}
+func (d *AliyunDns) UpdateIpV6(domain, rr, ipv6 string) error {
+
 	rcdtype := "AAAA"
-	recordidmapkey := _domain + rr + rcdtype
+	recordidmapkey := domain + rr + rcdtype
 	_, ok := d.rrMap[recordidmapkey]
 	if !ok {
-		_, err := d.GetIpV4(domain)
+		_, err := d.GetIpV4(domain, rr)
 		if err != nil {
 			return err
 		}
@@ -152,19 +144,14 @@ func (d *AliyunDns) UpdateIpV6(domain string, ipv6 string) error {
 	if !ok {
 		return errors.New("get recordid failed")
 	}
-	if err = updateDomainRecord(d.client, recordid, rr, rcdtype, ipv6); err != nil {
+	if err := updateDomainRecord(d.client, recordid, rr, rcdtype, ipv6); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *AliyunDns) GetIpV4(domain string) (string, error) {
-
-	domain, rr, err := splitDomainAndRR(domain)
-	if err != nil {
-		return "", err
-	}
+func (d *AliyunDns) GetIpV4(domain, rr string) (string, error) {
 
 	rcdtype := "A"
 	record, err := getTargetDNSRecord(d.client, &domain, &rr, &rcdtype)
@@ -178,13 +165,8 @@ func (d *AliyunDns) GetIpV4(domain string) (string, error) {
 	return *record.Value, nil
 }
 
-func (d *AliyunDns) GetIpV6(domain string) (string, error) {
+func (d *AliyunDns) GetIpV6(domain, rr string) (string, error) {
 
-	// split domain to domian and rr
-	domain, rr, err := splitDomainAndRR(domain)
-	if err != nil {
-		return "", err
-	}
 	rcdtype := "AAAA"
 	record, err := getTargetDNSRecord(d.client, &domain, &rr, &rcdtype)
 	if err != nil {
@@ -194,16 +176,4 @@ func (d *AliyunDns) GetIpV6(domain string) (string, error) {
 	d.rrMap[domain+rr+rcdtype] = *record.RecordId
 
 	return *record.Value, nil
-}
-
-func splitDomainAndRR(domain string) (string, string, error) {
-	dotIndex := strings.LastIndex(domain, ".")
-	dotIndex = strings.LastIndex(domain[:dotIndex], ".")
-
-	if dotIndex == -1 {
-		return "", "", errors.New("invalid domain")
-	}
-	_domain := domain[dotIndex+1:]
-	rr := domain[:dotIndex]
-	return _domain, rr, nil
 }
